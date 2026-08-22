@@ -1,0 +1,6 @@
+term_id,term_code,term_name,synonyms,definition,subject_domain,status,version
+"T-001","loan-balance","贷款余额","贷款敞口","借款人在某时点尚未偿还的贷款本金合计","LOAN","active","1.0.0"
+"T-002","month-end","月末","期末","自然月最后一日营业终了时点","ALL","active","1.0.0"
+"T-003","org","机构","网点、分支","承载业务经营的组织单元","ORG","active","1.0.0"
+"T-004","product","产品","品种","对客可售的贷款产品分类","LOAN","active","1.0.0"
+"T-005","borrower","借款人","客户","与银行签订借款合同的法人或自然人","CUS","active","1.0.0"

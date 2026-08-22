@@ -1,0 +1,4 @@
+rule_id,layer,layer_name,description,primary_source,version,active
+"LR-001","DWD","明细层","贴源清洗后的最细粒度事实，保持原子性，不做跨主题合并","源系统","1.0.0","true"
+"LR-002","DWM","汇总层","按主题和粒度预聚合的中间层，承接 DWD 并向 DM 供给","DWD","1.0.0","true"
+"LR-003","DM","集市层","面向使用场景的汇总宽表，粒度对齐使用需求","DWM","1.0.0","true"

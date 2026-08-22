@@ -1,0 +1,2 @@
+catalog_id,catalog_version,source_kind,queryable,valid_from,valid_to,coverage_layers,coverage_domains,checksum,description
+"CATALOG-SAMPLE-001","1.0.0","authoritative-local","true","2026-01-01","2026-12-31","DWD,DWM,DM","LOAN","PLACEHOLDER","示例资产目录快照（脱敏，仅用于测试 fixture）"

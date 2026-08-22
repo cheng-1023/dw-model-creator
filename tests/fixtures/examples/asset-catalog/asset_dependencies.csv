@@ -1,0 +1,3 @@
+dependency_id,asset_id,depends_on_asset_id,matrix_rule_id,status,description
+"D-001","A-002","A-001","MD-002","baseline","DWM 月度汇总来自 DWD 贷款明细"
+"D-002","A-003","A-002","MD-001","baseline","DM 集市表来自 DWM 月度汇总"

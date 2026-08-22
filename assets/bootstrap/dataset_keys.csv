@@ -1,0 +1,9 @@
+dataset_name,key_type,key_name,field_name,ordinal
+"type_dictionary","primary","pk_type_dictionary","type_code","1"
+"type_dictionary","unique","uq_type_dictionary_version","type_code","1"
+"type_dictionary","unique","uq_type_dictionary_version","version","2"
+"type_dictionary","sort","sort_type_dictionary","type_code","1"
+"type_values","primary","pk_type_values","type_code","1"
+"type_values","primary","pk_type_values","value_code","2"
+"type_values","sort","sort_type_values","type_code","1"
+"type_values","sort","sort_type_values","value_code","2"

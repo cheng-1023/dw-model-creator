@@ -1,0 +1,7 @@
+root_id,root_code,root_name,language,meaning,naming_example
+"R-001","ln","loan","en","贷款","dm_ln_loan_month_product"
+"R-002","bal","balance","en","余额","month_end_loan_balance"
+"R-003","org","organization","en","机构","org_no"
+"R-004","prd","product","en","产品","prd_code"
+"R-005","mth","month","en","月份","stat_mth"
+"R-006","cus","customer","en","客户","cus_no"

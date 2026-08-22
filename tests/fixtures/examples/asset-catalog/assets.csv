@@ -1,0 +1,4 @@
+asset_id,layer,model_role,asset_name,subject_domain,grain,status,description
+"A-001","DWD","fact-detail","dwd_ln_loan_detail","LOAN","日×借据","active","贷款明细事实表（贴源最细粒度）"
+"A-002","DWM","agg-month","dwm_ln_loan_month_agg","LOAN","月×机构×产品","active","贷款月度汇总表"
+"A-003","DM","dm-month-product","dm_ln_loan_month_product","LOAN","月×机构×产品","active","贷款月度机构产品集市表"

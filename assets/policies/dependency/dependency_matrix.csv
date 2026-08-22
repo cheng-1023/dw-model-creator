@@ -1,0 +1,9 @@
+matrix_rule_id,decision,consumer_layer,provider_layer,condition_ref,description,version,active
+"MD-001","ALLOW","DM","DWM","","DM 模型可引用 DWM 数据集","1.0.0","true"
+"MD-002","ALLOW","DWM","DWD","","DWM 模型可引用 DWD 数据集","1.0.0","true"
+"MD-003","DENY","DWD","DWM","","明细层 DWD 不得反向依赖汇总层 DWM","1.0.0","true"
+"MD-004","DENY","DWD","DM","","明细层 DWD 不得反向依赖集市层 DM","1.0.0","true"
+"MD-005","DENY","DM","DM","","DM 同层自依赖禁止：需要物化时回到矩阵允许的共同上游 DWM","1.0.0","true"
+"MD-006","DENY","DWM","DWM","","DWM 同层自依赖禁止","1.0.0","true"
+"MD-007","DENY","DWD","DWD","","DWD 同层自依赖禁止","1.0.0","true"
+"MD-008","CONDITIONAL","DM","DWD","MC-001","DM 跨层直引 DWD 属例外路径，必须提供获授权的结构化例外证据","1.0.0","true"

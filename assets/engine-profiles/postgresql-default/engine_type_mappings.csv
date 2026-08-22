@@ -1,0 +1,7 @@
+mapping_rule_id,engine_profile_code,logical_type,physical_type,target_native_type,ddl_type_template,template_syntax_version,length_rule,precision_rule,scale_rule,constraint_syntax_version,rule_version,description
+"ETM-001","postgresql-default","string","string","VARCHAR","VARCHAR({length})","tpl-v1","required;integer;1..10485760","forbidden","forbidden","rng-v1","1.0.0","变长字符串，长度必填"
+"ETM-002","postgresql-default","integer","integer","BIGINT","BIGINT","tpl-v1","forbidden","forbidden","forbidden","rng-v1","1.0.0","64 位整数"
+"ETM-003","postgresql-default","decimal","decimal","NUMERIC","NUMERIC({precision},{scale})","tpl-v1","forbidden","required;integer;1..38","required;integer;0..precision","rng-v1","1.0.0","定点小数，精度标度必填且 scale 不大于 precision"
+"ETM-004","postgresql-default","boolean","boolean","BOOLEAN","BOOLEAN","tpl-v1","forbidden","forbidden","forbidden","rng-v1","1.0.0","布尔类型"
+"ETM-005","postgresql-default","date","date","DATE","DATE","tpl-v1","forbidden","forbidden","forbidden","rng-v1","1.0.0","日期类型"
+"ETM-006","postgresql-default","timestamp","timestamp","TIMESTAMPTZ","TIMESTAMPTZ","tpl-v1","forbidden","forbidden","forbidden","rng-v1","1.0.0","带时区时间戳"

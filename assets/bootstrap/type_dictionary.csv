@@ -1,0 +1,13 @@
+schema_version,type_code,type_name,base_type,description,format_rule,version,active
+"1.0.0","string","文本","string","不参与数值计算的 Unicode 文本","","1.0.0","true"
+"1.0.0","integer","整数","integer","不含小数部分的十进制整数","","1.0.0","true"
+"1.0.0","decimal","十进制定点数","decimal","具有明确 precision/scale 的十进制定点数","","1.0.0","true"
+"1.0.0","boolean","布尔","boolean","只能取 true 或 false","","1.0.0","true"
+"1.0.0","date","日期","date","格式固定为 YYYY-MM-DD 的日期","YYYY-MM-DD","1.0.0","true"
+"1.0.0","timestamp","时间戳","timestamp","带时区 ISO 8601 时间戳","ISO8601-TZ","1.0.0","true"
+"1.0.0","reference","外键引用","reference","指向另一个 CSV 稳定主键的外键","","1.0.0","true"
+"1.0.0","enum","枚举","enum","只能取 type_values.csv 已登记值的代码","","1.0.0","true"
+"1.0.0","expression","表达式","expression","遵守指定语法版本的公式或规则文本","expr-v1","1.0.0","true"
+"1.0.0","Requiredness","必需性","enum","需求项的满足方式：必需、可选或替代组","","1.0.0","true"
+"1.0.0","MatrixDecision","矩阵判定","enum","依赖矩阵对拟议依赖边的判定结果","","1.0.0","true"
+"1.0.0","PhysicalLayer","数仓物理层","enum","数仓分层代码：DWD、DWM、DM","","1.0.0","true"

@@ -1,0 +1,2 @@
+engine_profile_code,engine_code,profile_version,dialect_version,description
+"postgresql-default","postgresql","1.0.0","pg-ddl-v1","PostgreSQL 默认方言与物理类型映射 Profile（一期默认引擎）"

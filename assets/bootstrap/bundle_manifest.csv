@@ -1,0 +1,6 @@
+entry_type,bundle_id,file_name,dataset_name,record_type,contract_version,row_count,content_checksum,bundle_checksum,generated_at,source_ref
+"bundle-root","BOOTSTRAP-001","\N","\N","\N","\N","\N","\N","PLACEHOLDER-RECOMPUTE-BY-VALIDATOR","2026-08-20T00:00:00+08:00","origin"
+"file","BOOTSTRAP-001","type_dictionary.csv","type_dictionary","dictionary-entry","1.0.0","12","PLACEHOLDER-RECOMPUTE-BY-VALIDATOR","\N","2026-08-20T00:00:00+08:00","origin"
+"file","BOOTSTRAP-001","type_values.csv","type_values","dictionary-entry","1.0.0","20","PLACEHOLDER-RECOMPUTE-BY-VALIDATOR","\N","2026-08-20T00:00:00+08:00","origin"
+"file","BOOTSTRAP-001","field_dictionary.csv","field_dictionary","dictionary-entry","1.0.0","14","PLACEHOLDER-RECOMPUTE-BY-VALIDATOR","\N","2026-08-20T00:00:00+08:00","origin"
+"file","BOOTSTRAP-001","dataset_keys.csv","dataset_keys","dictionary-entry","1.0.0","8","PLACEHOLDER-RECOMPUTE-BY-VALIDATOR","\N","2026-08-20T00:00:00+08:00","origin"

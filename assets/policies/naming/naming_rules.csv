@@ -1,0 +1,5 @@
+rule_id,target_kind,layer,pattern,example,description,version,active
+"NR-001","table","ALL","{layer}_{domain}_{subject}_{grain}，小写下划线","dm_ln_loan_month_product","表名 = 层_主题域_业务对象_粒度，统一小写下划线","1.0.0","true"
+"NR-002","column","ALL","小写下划线，词根见词根表","month_end_loan_balance","字段名统一小写下划线，命名取自登记词根","1.0.0","true"
+"NR-003","column","ALL","主键以 _key 结尾","loan_key","主键字段以 _key 结尾","1.0.0","true"
+"NR-004","model","ALL","模型名与目标表名一致","dm_ln_loan_month_product","模型名必须与物理表名保持一致","1.0.0","true"

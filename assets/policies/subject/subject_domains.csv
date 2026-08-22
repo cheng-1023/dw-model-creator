@@ -1,0 +1,5 @@
+domain_code,domain_name,parent_domain,description,version,active
+"LOAN","贷款","","贷款业务域：借据、放款、还款、余额","1.0.0","true"
+"DEP","存款","","存款业务域：账户、余额、利息","1.0.0","true"
+"ORG","机构","","机构与网点信息","1.0.0","true"
+"CUS","客户","","客户信息与客户画像","1.0.0","true"

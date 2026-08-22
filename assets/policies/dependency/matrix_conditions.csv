@@ -1,0 +1,2 @@
+condition_id,matrix_rule_id,condition_kind,required_evidence,description
+"MC-001","MD-008","cross-layer-exception","policy-rule","使用方须提交获授权且版本化的例外证据；缺证据时进入人工介入，不得降级为警告"

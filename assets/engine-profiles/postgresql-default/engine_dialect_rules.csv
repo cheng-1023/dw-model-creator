@@ -1,0 +1,6 @@
+dialect_rule_id,engine_profile_code,rule_kind,rule_value,rule_version,description
+"EDR-001","postgresql-default","identifier-quote","double-quote","1.0.0","标识符统一使用双引号包裹"
+"EDR-002","postgresql-default","identifier-max-length","63","1.0.0","PostgreSQL 标识符最大 63 字节"
+"EDR-003","postgresql-default","identifier-case","lower","1.0.0","未加引号标识符统一按小写处理"
+"EDR-004","postgresql-default","table-comment-template","COMMENT ON TABLE {table} IS '{comment}'","1.0.0","表注释模板；生成 DDL 时必须渲染"
+"EDR-005","postgresql-default","column-comment-template","COMMENT ON COLUMN {table}.{column} IS '{comment}'","1.0.0","字段注释模板；生成 DDL 时必须渲染"
