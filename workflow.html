@@ -1,0 +1,1551 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="dw-modeling Skill 的独立工作流、动态规划、典型任务场景及降级规则。">
+  <title>dw-modeling Skill 工作流设计</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #eef3f9;
+      --text: #182230;
+      --muted: #5c6b7a;
+      --border: #cbd5e1;
+      --accent: #155eef;
+      --accent-soft: #e8f0ff;
+      --design: #6941c6;
+      --design-soft: #f0eaff;
+      --success: #067647;
+      --success-soft: #e5f7ef;
+      --warning: #b54708;
+      --warning-soft: #fff0dc;
+      --danger: #b42318;
+      --danger-soft: #feeceb;
+      --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1722;
+        --surface: #17212e;
+        --surface-soft: #202c3a;
+        --text: #e8eef5;
+        --muted: #a9b7c7;
+        --border: #3a4b5f;
+        --accent: #8bb4ff;
+        --accent-soft: #17396f;
+        --design: #c4a8ff;
+        --design-soft: #3b2866;
+        --success: #73d6ad;
+        --success-soft: #123f31;
+        --warning: #f8b86a;
+        --warning-soft: #553313;
+        --danger: #ff9b93;
+        --danger-soft: #5b211f;
+        --shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    code {
+      padding: 0.08rem 0.32rem;
+      border-radius: 5px;
+      background: var(--surface-soft);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -5rem;
+      z-index: 100;
+      padding: 0.75rem 1rem;
+      background: var(--text);
+      color: var(--bg);
+      border-radius: 8px;
+    }
+
+    .skip-link:focus {
+      top: 1rem;
+    }
+
+    .page-shell {
+      width: min(1320px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 52px 0 30px;
+      border-bottom: 1px solid var(--border);
+      background:
+        radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 34%),
+        radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--design) 12%, transparent), transparent 30%);
+    }
+
+    .eyebrow,
+    .workflow-code,
+    .route-code,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .eyebrow {
+      padding: 0.34rem 0.72rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    h1,
+    h2,
+    h3 {
+      line-height: 1.25;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 1rem 0 0.75rem;
+      font-size: clamp(2rem, 4vw, 3.45rem);
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2.6vw, 2.2rem);
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 1.18rem;
+    }
+
+    .hero-copy {
+      max-width: 960px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .summary-row,
+    .toolbar,
+    .legend,
+    .toc-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+    }
+
+    .summary-row {
+      margin-top: 1.4rem;
+    }
+
+    .summary-chip {
+      padding: 0.6rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--surface) 82%, transparent);
+      color: var(--muted);
+    }
+
+    .summary-chip strong {
+      color: var(--text);
+    }
+
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(12px);
+    }
+
+    .top-nav .page-shell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 62px;
+    }
+
+    .toc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .toc-list a {
+      display: inline-block;
+      padding: 0.42rem 0.55rem;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 8px;
+    }
+
+    .toc-list a:hover,
+    .toc-list a:focus-visible {
+      background: var(--surface-soft);
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0.55rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--surface-soft);
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 52%, transparent);
+      outline-offset: 3px;
+    }
+
+    main {
+      padding: 42px 0 72px;
+    }
+
+    section {
+      scroll-margin-top: 86px;
+    }
+
+    section + section {
+      margin-top: 64px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .section-heading p {
+      max-width: 760px;
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+    }
+
+    .panel,
+    .workflow-card,
+    .route-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: clamp(1rem, 2.5vw, 1.75rem);
+    }
+
+    .boundary-grid,
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .boundary-box {
+      padding: 1rem;
+      border-left: 4px solid var(--success);
+      background: var(--success-soft);
+      border-radius: 10px;
+    }
+
+    .boundary-box.out {
+      border-left-color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .boundary-box h3 {
+      margin-bottom: 0.5rem;
+    }
+
+    .boundary-box ul,
+    .detail-list {
+      margin: 0;
+      padding-left: 1.15rem;
+    }
+
+    .legend {
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .legend-swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      border: 1px solid currentColor;
+    }
+
+    .overview-map,
+    .flowchart,
+    .route-flow {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 14px;
+      background: var(--surface-soft);
+    }
+
+    .flow-row,
+    .route-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0.45rem;
+    }
+
+    .flow-node {
+      display: flex;
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 70px;
+      padding: 0.72rem;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .flow-node.input {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .flow-node.design {
+      border-color: var(--design);
+      background: var(--design-soft);
+    }
+
+    .flow-node.output {
+      border-color: var(--success);
+      background: var(--success-soft);
+    }
+
+    .flow-node.decision,
+    .flow-node.risk {
+      border-color: var(--warning);
+      background: var(--warning-soft);
+    }
+
+    .flow-node.blocked {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .flow-arrow {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .parallel-stage {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+      margin: 0.75rem 0;
+      padding: 0.75rem;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+    }
+
+    .parallel-label {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    .branch-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+
+    .branch-option {
+      padding: 0.72rem;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .branch-option strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.1rem;
+    }
+
+    .workflow-card,
+    .route-card {
+      scroll-margin-top: 86px;
+      overflow: clip;
+    }
+
+    .workflow-card {
+      display: flex;
+      flex-direction: column;
+      padding: 1.2rem;
+    }
+
+    .workflow-card header,
+    .route-card header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .workflow-code,
+    .route-code,
+    .tag {
+      padding: 0.28rem 0.58rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .tag.design-tag {
+      background: var(--design-soft);
+      color: var(--design);
+    }
+
+    .tag.output-tag {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .workflow-card > p,
+    .route-card > p,
+    .route-card header + p {
+      color: var(--muted);
+    }
+
+    .io-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+      margin-top: auto;
+    }
+
+    .io-box {
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+
+    .io-box strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .io-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    details {
+      margin-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    details p,
+    details ul {
+      color: var(--muted);
+    }
+
+    .route-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .route-card {
+      padding: 1.2rem;
+    }
+
+    .route-card .route-flow {
+      margin-top: 0.75rem;
+    }
+
+    .route-card .flow-node {
+      min-height: 58px;
+      font-size: 0.84rem;
+    }
+
+    .route-note {
+      margin: 0.75rem 0 0;
+      color: var(--muted);
+    }
+
+    .planner-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .planner-card {
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      border-radius: 14px;
+      background: var(--surface);
+    }
+
+    .planner-card.planner-rules {
+      border-top-color: var(--design);
+    }
+
+    .planner-card.planner-output {
+      border-top-color: var(--success);
+    }
+
+    .planner-card h3 {
+      margin-bottom: 0.55rem;
+    }
+
+    .planner-card ul {
+      margin: 0;
+      padding-left: 1.15rem;
+      color: var(--muted);
+    }
+
+    .planner-map {
+      margin-top: 1rem;
+    }
+
+    .planner-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+      margin-bottom: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .planner-step {
+      position: relative;
+      min-height: 128px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: var(--surface-soft);
+    }
+
+    .planner-step strong {
+      display: block;
+      margin: 0.55rem 0 0.25rem;
+    }
+
+    .planner-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .step-number {
+      display: inline-flex;
+      width: 2rem;
+      height: 2rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .plan-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .plan-example {
+      min-width: 0;
+    }
+
+    .plan-example pre {
+      margin: 0.75rem 0 0;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 12px;
+      background: #0b1220;
+      color: #dce8ff;
+      line-height: 1.5;
+    }
+
+    .plan-example pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .planner-note {
+      margin: 1rem 0 0;
+      padding: 0.85rem 1rem;
+      border-left: 4px solid var(--warning);
+      border-radius: 10px;
+      background: var(--warning-soft);
+    }
+
+    .planner-note strong {
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    .rule {
+      padding: 1rem;
+      border-top: 3px solid var(--accent);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .rule h3 {
+      margin-bottom: 0.4rem;
+    }
+
+    .rule p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .status-table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    footer {
+      padding: 28px 0 44px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 880px) {
+      .top-nav {
+        position: static;
+      }
+
+      section,
+      .workflow-card,
+      .route-card {
+        scroll-margin-top: 24px;
+      }
+
+      .top-nav .page-shell,
+      .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .workflow-grid,
+      .boundary-grid,
+      .rules-grid,
+      .planner-grid,
+      .planner-steps,
+      .plan-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-row,
+      .route-row {
+        flex-direction: column;
+      }
+
+      .flow-node {
+        width: 100%;
+        min-height: 58px;
+      }
+
+      .flow-arrow {
+        min-height: 24px;
+        font-size: 0;
+      }
+
+      .flow-arrow::after {
+        content: "↓";
+        font-size: 1.2rem;
+      }
+
+      .flow-arrow.join {
+        font-size: 1.15rem;
+      }
+
+      .flow-arrow.join::after {
+        content: none;
+      }
+
+      .parallel-stage,
+      .io-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .parallel-label {
+        grid-column: auto;
+      }
+    }
+
+    @media (min-width: 881px) and (max-width: 1100px) {
+      .top-nav .page-shell {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 0.65rem 0;
+      }
+
+      section,
+      .workflow-card,
+      .route-card {
+        scroll-margin-top: 148px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page-shell {
+        width: min(100% - 20px, 1320px);
+      }
+
+      .hero {
+        padding-top: 34px;
+      }
+
+      .toc-list {
+        gap: 0.2rem;
+      }
+
+      .toolbar {
+        width: 100%;
+      }
+
+      .toolbar button {
+        flex: 1 1 auto;
+      }
+
+      .workflow-card header,
+      .route-card header {
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+    }
+
+    @media print {
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        background: #fff;
+        color: #000;
+      }
+
+      .top-nav,
+      .toolbar,
+      .skip-link {
+        display: none !important;
+      }
+
+      .hero {
+        padding-top: 16px;
+      }
+
+      .panel,
+      .workflow-card,
+      .route-card,
+      .planner-card,
+      .planner-step {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+
+      .workflow-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-example pre {
+        overflow: visible;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      details > * {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+  <header class="hero">
+    <div class="page-shell">
+      <span class="eyebrow">dw-modeling · Workflow Architecture</span>
+      <h1>数仓供数评估与模型设计工作流</h1>
+      <p class="hero-copy">
+        输入是需求分析阶段已经产出的标准化数据需求。本 Skill 负责校验需求、查询仓内资产与血缘、判断供数能力、规划模型变更，并根据目标产物、已有合规产物和风险约束动态编排概念、逻辑、物理设计及交付工作流。
+      </p>
+      <div class="summary-row" aria-label="设计摘要">
+        <span class="summary-chip"><strong>11</strong> 个一级工作流</span>
+        <span class="summary-chip"><strong>动态规划</strong> 自动编排</span>
+        <span class="summary-chip"><strong>14</strong> 个典型任务场景</span>
+        <span class="summary-chip"><strong>0</strong> 个嵌套子流程</span>
+        <span class="summary-chip">资产与血缘查询可<strong>独立或并行</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="top-nav" aria-label="页面目录">
+    <div class="page-shell">
+      <ul class="toc-list">
+        <li><a href="#overview">总览</a></li>
+        <li><a href="#workflows">独立工作流</a></li>
+        <li><a href="#scenarios">典型场景</a></li>
+        <li><a href="#planner">动态规划</a></li>
+        <li><a href="#rules">规划规则</a></li>
+      </ul>
+      <div class="toolbar" aria-label="页面操作">
+        <button type="button" id="expand-all">全部展开</button>
+        <button type="button" id="collapse-all">全部收起</button>
+        <button type="button" id="print-page">打印</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content" class="page-shell">
+    <section id="overview" aria-labelledby="overview-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="overview-title">完整工作流概览</h2>
+          <p>页面以11个可独立运行的工作流为执行单元。动态规划器根据目标交付物、已有合规产物、变更层级和风险约束生成最短且完整的执行计划；14个场景只用于解释和验证常见规划结果。</p>
+        </div>
+      </div>
+
+      <div class="boundary-grid">
+        <article class="boundary-box">
+          <h3>Skill负责</h3>
+          <ul>
+            <li>校验标准化数据需求，不修改业务含义。</li>
+            <li>查询数仓资产、表级和字段级血缘。</li>
+            <li>判断直接供数、可推导、扩展或新增。</li>
+            <li>完成模型变更、三阶段设计、评审与DDL交付。</li>
+          </ul>
+        </article>
+        <article class="boundary-box out">
+          <h3>Skill不负责</h3>
+          <ul>
+            <li>从原始需求推导报表或接口字段。</li>
+            <li>定义、修改或批准字段业务含义。</li>
+            <li>替业务方确认指标、标签口径。</li>
+            <li>实现ETL、报表前端或API服务端。</li>
+          </ul>
+        </article>
+      </div>
+
+      <figure class="panel overview-map" aria-labelledby="overview-map-title">
+        <figcaption id="overview-map-title"><strong>能力依赖骨架：</strong>展示需求驱动任务可能涉及的完整能力链，不代表每次调用都必须执行全部节点</figcaption>
+        <div class="flow-row" role="img" aria-label="WF-01校验需求，WF-02和WF-03查询资产与血缘，WF-04完成供数评估。可供数时结束；存在模型缺口时进入WF-05和WF-06规划影响分析，再按变更类型进入设计阶段，最终执行WF-06交付影响复核、WF-10评审和WF-11交付。">
+          <div class="flow-node input">WF-01<br>标准化需求校验</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node">WF-02 / WF-03<br>资产与血缘</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node">WF-04<br>供数能力评估</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node decision">结束，或进入<br>WF-05 / WF-06 planning</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node design">WF-07 / 08 / 09<br>按变更类型设计</div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node output">WF-06 / 10 / 11<br>复核、评审、交付</div>
+        </div>
+        <div class="branch-options" aria-label="设计阶段分支">
+          <div class="branch-option"><strong>直接复用</strong>输出供数映射，不进入模型设计</div>
+          <div class="branch-option"><strong>仅物理变化</strong>WF-09</div>
+          <div class="branch-option"><strong>逻辑变化</strong>WF-08 → WF-09</div>
+          <div class="branch-option"><strong>概念变化 / 新增</strong>WF-07 → WF-08 → WF-09</div>
+        </div>
+      </figure>
+
+      <div class="legend" aria-label="流程图图例">
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--accent-soft);color:var(--accent)"></span>输入</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--surface);color:var(--border)"></span>处理</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--design-soft);color:var(--design)"></span>设计阶段</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--success-soft);color:var(--success)"></span>正式输出</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--warning-soft);color:var(--warning)"></span>判断或风险降级</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--danger-soft);color:var(--danger)"></span>阻断或待补充</span>
+      </div>
+    </section>
+
+    <section id="workflows" aria-labelledby="workflows-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="workflows-title">11个独立工作流</h2>
+          <p>每个工作流都有显式输入、独立产物、局部校验和终止状态；只要外部输入满足契约，就可以绕过前序工作流单独运行。</p>
+        </div>
+      </div>
+
+      <div class="workflow-grid">
+        <article class="workflow-card" id="wf-01">
+          <header>
+            <div><span class="workflow-code">WF-01</span><h3>标准化数据需求校验</h3></div>
+            <span class="tag">基础</span>
+          </header>
+          <p>只校验需求分析交付物，不生成、重写或补充数据需求。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>标准化数据需求、Schema版本、需求确认信息、口径引用。</p></div>
+            <div class="io-box"><strong>输出</strong><p>校验报告；通过时输出绑定原文档指纹的 <code>ValidatedRequirementRef</code>。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="接收标准化数据需求，绑定版本，检查结构完整性、引用和一致性，最后判断是否通过。">
+            <div class="flow-row">
+              <div class="flow-node input">标准化需求</div><span class="flow-arrow">→</span>
+              <div class="flow-node">绑定版本与指纹</div><span class="flow-arrow">→</span>
+              <div class="flow-node">完整性与一致性校验</div><span class="flow-arrow">→</span>
+              <div class="flow-node decision">是否通过</div>
+            </div>
+            <div class="branch-options">
+              <div class="branch-option"><strong>通过</strong><code>ValidatedRequirementRef</code></div>
+              <div class="branch-option"><strong>不通过</strong>问题报告 → 用户修订后提交新版本</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>失败时以 <code>needs-input</code> 结束本次执行，不在工作流内部无限等待；新版本提交后重新运行。业务校验不通过不等同于技术执行失败。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-02">
+          <header>
+            <div><span class="workflow-code">WF-02</span><h3>数仓资产查询</h3></div>
+            <span class="tag">查询</span>
+          </header>
+          <p>回答“仓内有什么”，查询模型、表、字段、指标、标签及其技术属性，不负责解释数据从哪里来。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>资产查询条件或已校验需求范围、只读元数据源配置。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>AssetSnapshot</code>、资产覆盖报告、证据索引和实际查询范围。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="接收资产查询条件，检查只读数据源，查询和规范化元数据，评估覆盖度并输出资产快照。">
+            <div class="flow-row">
+              <div class="flow-node input">查询范围</div><span class="flow-arrow">→</span>
+              <div class="flow-node">只读数据源检查</div><span class="flow-arrow">→</span>
+              <div class="flow-node">模型 / 表 / 字段查询</div><span class="flow-arrow">→</span>
+              <div class="flow-node">规范化与证据登记</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">资产快照</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>不依赖WF-01；可接收独立的 <code>AssetQueryRequest</code>。数据源覆盖不完整时输出 <code>completed-with-risks</code>，不得把“未查到”解释为“资产不存在”。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-03">
+          <header>
+            <div><span class="workflow-code">WF-03</span><h3>数仓血缘查询</h3></div>
+            <span class="tag">查询</span>
+          </header>
+          <p>回答“数据从哪里来、流向哪里”，支持表级和字段级上下游血缘查询。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>模型/表/字段标识、方向与深度、血缘平台及SQL/视图/ETL证据源；资产快照可选。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>LineageSnapshot</code>、证据等级、覆盖报告和血缘缺口报告。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="优先查询权威字段血缘；不存在时依次解析SQL、视图和ETL，必要时降级为表级血缘，最后标记证据状态。">
+            <div class="flow-row">
+              <div class="flow-node input">血缘查询请求</div><span class="flow-arrow">→</span>
+              <div class="flow-node">权威血缘查询</div><span class="flow-arrow">→</span>
+              <div class="flow-node decision">证据是否完整</div><span class="flow-arrow">→</span>
+              <div class="flow-node risk">SQL / 视图 / ETL推导或表级降级</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">血缘快照</div>
+            </div>
+            <div class="branch-options">
+              <div class="branch-option"><strong>confirmed</strong>权威字段血缘</div>
+              <div class="branch-option"><strong>inferred</strong>规则静态推导</div>
+              <div class="branch-option"><strong>partial</strong>部分字段或表级</div>
+              <div class="branch-option"><strong>unavailable</strong>无可用证据</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>资产标识明确时可独立运行；需要先发现标识时才采用WF-02 → WF-03。没有查到血缘不等于没有依赖。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-04">
+          <header>
+            <div><span class="workflow-code">WF-04</span><h3>供数能力评估</h3></div>
+            <span class="tag">分析</span>
+          </header>
+          <p>逐项判断现有数仓是否可以直接、聚合或计算提供需求数据，并保留证据。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>已校验标准化需求、资产快照，以及可选血缘快照。</p></div>
+            <div class="io-box"><strong>输出</strong><p>需求项到资产的映射、<code>SupplyAssessment</code>、供数证据和不确定项。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="拆出需求数据项，匹配资产字段，验证语义、粒度、时间和转换规则，再给出供数分类。">
+            <div class="flow-row">
+              <div class="flow-node input">需求项 + 资产</div><span class="flow-arrow">→</span>
+              <div class="flow-node">字段与指标匹配</div><span class="flow-arrow">→</span>
+              <div class="flow-node">语义 / 粒度 / 时间验证</div><span class="flow-arrow">→</span>
+              <div class="flow-node decision">供数分类</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">供数评估</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>直接字段匹配可以在没有血缘时完成；“可推导”必须有字段血缘或转换规则证据，否则标记 <code>cannot-determine</code>。结论包括直接支持、可推导、扩展、新增、不确定和不支持。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-05">
+          <header>
+            <div><span class="workflow-code">WF-05</span><h3>模型缺口与变更规划</h3></div>
+            <span class="tag">分析</span>
+          </header>
+          <p>把供数缺口转化为可执行的模型变更任务，并确定需要进入的设计阶段。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>供数评估、资产快照、分层与建模规则，可选血缘快照。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>ModelGapGraph</code>、<code>ModelChangePlan</code>和模型设计任务集。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="汇总供数缺口，按目标层到DM、DWM、DWD反向展开，去重共享能力，作出复用、扩展、版本化或新增决策。">
+            <div class="flow-row">
+              <div class="flow-node input">供数缺口</div><span class="flow-arrow">→</span>
+              <div class="flow-node">目标层 → DM → DWM → DWD</div><span class="flow-arrow">→</span>
+              <div class="flow-node">缺口去重与能力共享</div><span class="flow-arrow">→</span>
+              <div class="flow-node decision">复用 / 扩展 / 版本化 / 新增</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">变更计划</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>可接收外部供数评估直接运行。缺少关键资产证据时输出“暂无法规划”，不得武断判定新建。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-06">
+          <header>
+            <div><span class="workflow-code">WF-06</span><h3>模型影响分析</h3></div>
+            <span class="tag">分析</span>
+          </header>
+          <p>基于模型差异、资产和血缘评估上下游影响；支持规划前评估和交付前精确复核。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>模型变更计划或明确差异、资产快照、血缘快照和兼容性规则。</p></div>
+            <div class="io-box"><strong>输出</strong><p>受影响对象、兼容性风险、分析精度、未知范围和处置建议。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="选择规划或交付模式，分析上游和下游字段、模型与消费影响，评估兼容性及血缘覆盖，最后输出影响报告。">
+            <div class="flow-row">
+              <div class="flow-node input">变更差异 + 快照</div><span class="flow-arrow">→</span>
+              <div class="flow-node decision">planning / release</div><span class="flow-arrow">→</span>
+              <div class="flow-node">上下游影响展开</div><span class="flow-arrow">→</span>
+              <div class="flow-node">兼容性与精度判断</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">影响报告</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>依赖的是 <code>AssetSnapshot</code> 和 <code>LineageSnapshot</code> 数据契约，不强制要求WF-02或WF-03在本次任务执行。表级血缘时降级为表级影响；破坏性变更且字段血缘不足时输出 <code>blocked-for-delivery</code>。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-07">
+          <header>
+            <div><span class="workflow-code">WF-07</span><h3>概念模型设计</h3></div>
+            <span class="tag design-tag">设计</span>
+          </header>
+          <p>定义业务过程、业务对象、事件、关系和模型边界，为后续逻辑设计建立语义基线。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>模型设计任务、已确认业务语义、可选既有概念基线和建模规范。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>ConceptualModelSpec</code>及阶段检查结果。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="确定业务过程和范围，识别对象与事件，定义关系和边界，校验后输出概念模型。">
+            <div class="flow-row">
+              <div class="flow-node input">设计任务</div><span class="flow-arrow">→</span>
+              <div class="flow-node design">业务过程与范围</div><span class="flow-arrow">→</span>
+              <div class="flow-node design">对象 / 事件 / 关系</div><span class="flow-arrow">→</span>
+              <div class="flow-node">概念阶段校验</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">概念模型</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>可以从外部合规模型任务直接开始。新增模型和概念边界变化必须运行；缺少已确认业务语义时以 <code>needs-input</code> 结束。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-08">
+          <header>
+            <div><span class="workflow-code">WF-08</span><h3>逻辑模型设计</h3></div>
+            <span class="tag design-tag">设计</span>
+          </header>
+          <p>将概念语义落实为粒度、事实、维度、键、度量、时态及可加性契约。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>概念模型或已批准概念基线、模型任务、需求语义引用和源资产信息。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>LogicalModelSpec</code>、字段与语义映射及阶段检查结果。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="读取概念基线，定义粒度、事实和维度，设计键、关系和时态，定义度量与可加性，最后输出逻辑模型。">
+            <div class="flow-row">
+              <div class="flow-node input">概念基线</div><span class="flow-arrow">→</span>
+              <div class="flow-node design">粒度 / 事实 / 维度</div><span class="flow-arrow">→</span>
+              <div class="flow-node design">键 / 关系 / SCD</div><span class="flow-arrow">→</span>
+              <div class="flow-node">度量与可加性校验</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">逻辑模型</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>已有概念模型版本有效时可以独立运行。若发现业务对象或边界错误，输出“需要修改概念设计”，不在逻辑阶段静默改写概念模型。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-09">
+          <header>
+            <div><span class="workflow-code">WF-09</span><h3>物理模型设计</h3></div>
+            <span class="tag design-tag">设计</span>
+          </header>
+          <p>把逻辑模型映射为目标层和目标引擎上的表、字段、约束、分区及迁移方案。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>逻辑模型或已批准逻辑基线、目标引擎、分层和物理规则、模型任务。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>PhysicalModelSpec</code>、物理差异、计划字段血缘和迁移策略。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="读取逻辑模型和引擎规则，设计表字段和类型，定义键索引分区及约束，规划字段血缘和迁移，最后输出物理模型。">
+            <div class="flow-row">
+              <div class="flow-node input">逻辑模型 + 引擎</div><span class="flow-arrow">→</span>
+              <div class="flow-node design">表 / 字段 / 类型</div><span class="flow-arrow">→</span>
+              <div class="flow-node design">键 / 索引 / 分区 / 约束</div><span class="flow-arrow">→</span>
+              <div class="flow-node">计划血缘与迁移校验</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">物理模型</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>已有逻辑模型基线有效时可以独立运行。若物理实现无法保持逻辑粒度或约束，返回“需要修改逻辑设计”，不以DDL反向替代模型设计。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-10">
+          <header>
+            <div><span class="workflow-code">WF-10</span><h3>模型校验与评审</h3></div>
+            <span class="tag output-tag">质量</span>
+          </header>
+          <p>既可审查单一模型阶段，也可审查完整模型包及其需求追溯、影响分析和阶段一致性。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>单阶段模型或完整模型包、需求引用、既有基线、标准和影响分析。</p></div>
+            <div class="io-box"><strong>输出</strong><p><code>ModelReviewReport</code>、问题清单、审批结果和模型版本指纹。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="读取待评审模型，执行阶段内检查、跨阶段一致性检查、依赖血缘与影响复核，最后作出审批决定。">
+            <div class="flow-row">
+              <div class="flow-node input">待评审模型</div><span class="flow-arrow">→</span>
+              <div class="flow-node">阶段内规则校验</div><span class="flow-arrow">→</span>
+              <div class="flow-node">跨阶段一致性</div><span class="flow-arrow">→</span>
+              <div class="flow-node">依赖 / 血缘 / 影响复核</div><span class="flow-arrow">→</span>
+              <div class="flow-node decision">审批结果</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>可直接审查外部模型产物。结果包括 <code>approved</code>、<code>approved-with-risks</code>、<code>needs-revision</code>和 <code>needs-input</code>。WF-11只能绑定已批准的物理模型指纹。</p></details>
+        </article>
+
+        <article class="workflow-card" id="wf-11">
+          <header>
+            <div><span class="workflow-code">WF-11</span><h3>DDL与交付物生成</h3></div>
+            <span class="tag output-tag">交付</span>
+          </header>
+          <p>从已批准物理模型确定性生成CREATE/ALTER DDL，并组装设计文档和全链路追溯材料。</p>
+          <div class="io-grid">
+            <div class="io-box"><strong>输入</strong><p>已批准物理模型、审批凭证、目标引擎、交付配置和相关设计产物。</p></div>
+            <div class="io-box"><strong>输出</strong><p>DDL、迁移/回退建议、设计交付包、追溯矩阵和交付清单。</p></div>
+          </div>
+          <div class="flowchart" role="img" aria-label="校验物理模型审批指纹和引擎Profile，渲染DDL，检查语法及与物理模型的一致性，组装追溯文档后交付。">
+            <div class="flow-row">
+              <div class="flow-node input">已批准物理模型</div><span class="flow-arrow">→</span>
+              <div class="flow-node">审批指纹与Profile校验</div><span class="flow-arrow">→</span>
+              <div class="flow-node">CREATE / ALTER渲染</div><span class="flow-arrow">→</span>
+              <div class="flow-node">语法与一致性检查</div><span class="flow-arrow">→</span>
+              <div class="flow-node output">DDL与交付包</div>
+            </div>
+          </div>
+          <details open><summary>独立运行与异常行为</summary><p>可直接接收外部已批准物理模型。缺少有效审批凭证、指纹不匹配或引擎Profile不可用时不得生成正式交付版本。</p></details>
+        </article>
+      </div>
+    </section>
+
+    <section id="scenarios" aria-labelledby="scenarios-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="scenarios-title">14个典型任务场景</h2>
+          <p>以下场景是动态规划器的参考示例和回归测试基准，不是固定、穷尽或必须逐步执行的执行清单。实际计划会根据已有产物、目标输出和风险规则跳过、补充、并行或终止节点。</p>
+        </div>
+      </div>
+
+      <div class="route-list">
+        <article class="route-card" id="scenario-01">
+          <header><div><span class="route-code">SC-01</span><h3>快速直接供数判断</h3></div><span class="tag">需求驱动</span></header>
+          <p>只判断现有字段是否可以直接供数，不对跨层推导给出高置信结论。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">WF-01</div><span class="flow-arrow">→</span><div class="flow-node">WF-02</div><span class="flow-arrow">→</span><div class="flow-node output">WF-04</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-02">
+          <header><div><span class="route-code">SC-02</span><h3>完整供数能力评估</h3></div><span class="tag">需求驱动</span></header>
+          <p>同时使用资产和血缘证据，判断直接供数、合法计算、聚合和跨层推导能力。</p>
+          <div class="route-flow">
+            <div class="route-row"><div class="flow-node input">WF-01</div></div>
+            <div class="parallel-stage"><span class="parallel-label">资产标识明确时可并行</span><div class="flow-node">WF-02 资产</div><div class="flow-node">WF-03 血缘</div></div>
+            <div class="route-row"><div class="flow-node output">WF-04 供数评估</div></div>
+          </div>
+        </article>
+
+        <article class="route-card" id="scenario-03">
+          <header><div><span class="route-code">SC-03</span><h3>模型缺口和变更决策</h3></div><span class="tag">需求驱动</span></header>
+          <p>回答“缺什么、修改哪些模型、新增哪些模型、初步影响是什么”，不进入详细设计。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">WF-01</div><span class="flow-arrow">→</span><div class="flow-node">WF-02 / 03</div><span class="flow-arrow">→</span><div class="flow-node">WF-04</div><span class="flow-arrow">→</span><div class="flow-node">WF-05</div><span class="flow-arrow">→</span><div class="flow-node output">WF-06 planning</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-04">
+          <header><div><span class="route-code">SC-04</span><h3>新增模型完整设计</h3></div><span class="tag design-tag">设计驱动</span></header>
+          <p>输入已经是批准的新增模型任务时，不重复执行需求和供数评估；任务未包含规划级影响结论时，规划器会在设计前补入WF-06 planning。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">设计任务</div><span class="flow-arrow">→</span><div class="flow-node design">WF-07</div><span class="flow-arrow">→</span><div class="flow-node design">WF-08</div><span class="flow-arrow">→</span><div class="flow-node design">WF-09</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-05">
+          <header><div><span class="route-code">SC-05</span><h3>存量模型概念边界变化</h3></div><span class="tag design-tag">变更驱动</span></header>
+          <p>适用于业务对象、业务过程、模型边界或核心关系发生变化。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">WF-06 planning</div><span class="flow-arrow">→</span><div class="flow-node design">WF-07</div><span class="flow-arrow">→</span><div class="flow-node design">WF-08</div><span class="flow-arrow">→</span><div class="flow-node design">WF-09</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-06">
+          <header><div><span class="route-code">SC-06</span><h3>存量模型逻辑变化</h3></div><span class="tag design-tag">变更驱动</span></header>
+          <p>适用于粒度、事实、维度、业务键、度量或时态变化，但概念基线仍然有效。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">WF-06 planning</div><span class="flow-arrow">→</span><div class="flow-node design">WF-08</div><span class="flow-arrow">→</span><div class="flow-node design">WF-09</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-07">
+          <header><div><span class="route-code">SC-07</span><h3>存量模型仅物理变化</h3></div><span class="tag design-tag">变更驱动</span></header>
+          <p>适用于字段类型、分区、索引、存储属性等不改变业务语义的物理调整。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">WF-06 planning</div><span class="flow-arrow">→</span><div class="flow-node design">WF-09</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-08">
+          <header><div><span class="route-code">SC-08</span><h3>需求驱动的端到端新增模型</h3></div><span class="tag">端到端场景</span></header>
+          <p>从需求分析交付物开始，完成供数评估、缺口规划、新增模型全链路设计和DDL交付。</p>
+          <div class="route-flow">
+            <div class="route-row"><div class="flow-node input">WF-01</div><span class="flow-arrow">→</span><div class="flow-node">WF-02 / 03</div><span class="flow-arrow">→</span><div class="flow-node">WF-04</div><span class="flow-arrow">→</span><div class="flow-node">WF-05</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 planning</div></div>
+            <div class="route-row" style="margin-top:.65rem"><div class="flow-node design">WF-07</div><span class="flow-arrow">→</span><div class="flow-node design">WF-08</div><span class="flow-arrow">→</span><div class="flow-node design">WF-09</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div>
+          </div>
+        </article>
+
+        <article class="route-card" id="scenario-09">
+          <header><div><span class="route-code">SC-09</span><h3>混合需求批量处理</h3></div><span class="tag">端到端场景</span></header>
+          <p>不同需求项按供数结论并行处理，各模型按依赖顺序设计，最终合并复核与交付。</p>
+          <div class="route-flow">
+            <div class="route-row"><div class="flow-node input">WF-01 → WF-02 / 03 → WF-04</div></div>
+            <div class="branch-options">
+              <div class="branch-option"><strong>直接支持 / 可推导</strong>供数映射</div>
+              <div class="branch-option"><strong>物理修改</strong>WF-05 → WF-06 planning → WF-09</div>
+              <div class="branch-option"><strong>逻辑修改</strong>WF-05 → WF-06 planning → WF-08 → WF-09</div>
+              <div class="branch-option"><strong>新增模型</strong>WF-05 → WF-06 planning → WF-07 → WF-08 → WF-09</div>
+            </div>
+            <div class="route-row" style="margin-top:.65rem"><div class="flow-node">仅模型变更分支汇合</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div>
+          </div>
+        </article>
+
+        <article class="route-card" id="scenario-10">
+          <header><div><span class="route-code">SC-10</span><h3>资产与血缘盘点</h3></div><span class="tag">资产驱动</span></header>
+          <p>为指定主题域或模型范围建立资产、字段和血缘基线，不依赖业务需求。</p>
+          <div class="route-flow">
+            <div class="route-row"><div class="flow-node input">查询范围</div><span class="flow-arrow">→</span><div class="flow-node">WF-02</div><span class="flow-arrow">→</span><div class="flow-node output">WF-03</div></div>
+            <p class="route-note">资产标识已明确时，WF-02和WF-03也可以并行执行。</p>
+          </div>
+        </article>
+
+        <article class="route-card" id="scenario-11">
+          <header><div><span class="route-code">SC-11</span><h3>独立模型变更影响分析</h3></div><span class="tag">变更驱动</span></header>
+          <p>外部已经形成模型变更方案时，直接使用符合契约的资产和血缘快照执行影响分析。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">外部变更方案</div><span class="flow-arrow join">＋</span><div class="flow-node">AssetSnapshot</div><span class="flow-arrow join">＋</span><div class="flow-node">LineageSnapshot</div><span class="flow-arrow">→</span><div class="flow-node output">WF-06</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-12">
+          <header><div><span class="route-code">SC-12</span><h3>从任一合规模型阶段继续设计</h3></div><span class="tag design-tag">设计驱动</span></header>
+          <p>概念、逻辑、物理和全链设计均可从外部合规输入独立开始。</p>
+          <div class="route-flow">
+            <div class="branch-options">
+              <div class="branch-option"><strong>概念设计</strong>WF-07 → WF-10</div>
+              <div class="branch-option"><strong>逻辑设计</strong>WF-08 → WF-10</div>
+              <div class="branch-option"><strong>物理设计并交付</strong>WF-09 → WF-06 release → WF-10 → WF-11</div>
+              <div class="branch-option"><strong>全链设计并交付</strong>WF-07 → WF-08 → WF-09 → WF-06 release → WF-10 → WF-11</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="route-card" id="scenario-13">
+          <header><div><span class="route-code">SC-13</span><h3>存量设计包上线前复核</h3></div><span class="tag output-tag">交付驱动</span></header>
+          <p>模型设计已由外部完成，仅执行交付级影响复核、模型评审和DDL交付。</p>
+          <div class="route-flow"><div class="route-row"><div class="flow-node input">外部设计包</div><span class="flow-arrow">→</span><div class="flow-node">WF-06 release</div><span class="flow-arrow">→</span><div class="flow-node">WF-10</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11</div></div></div>
+        </article>
+
+        <article class="route-card" id="scenario-14">
+          <header><div><span class="route-code">SC-14</span><h3>已评审模型重新生成交付物</h3></div><span class="tag output-tag">交付驱动</span></header>
+          <p>将已通过评审的物理模型重新生成指定引擎或指定版本的DDL与交付包。</p>
+          <div class="route-flow">
+            <div class="route-row"><div class="flow-node input">已批准模型指纹与审批凭证</div><span class="flow-arrow">→</span><div class="flow-node output">WF-11 凭证校验与交付物生成</div></div>
+            <p class="route-note">模型、引擎Profile或交付语义变化导致原审批失效时，规划器先补入WF-10重新评审。</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="planner" aria-labelledby="planner-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="planner-title">动态规划与自动编排</h2>
+          <p>Skill不要求用户从14个场景中选择一条固定路径。规划器先识别“已有产物”和“期望产物”，再依据工作流契约计算依赖闭包、裁剪已完成步骤、应用强制与风险规则，最后生成可解释、可校验的执行计划。这里的“动态规划”指运行时计划生成与重新编排，不是算法学中的Dynamic Programming。</p>
+        </div>
+      </div>
+
+      <div class="planner-grid">
+        <article class="planner-card planner-input">
+          <h3>规划输入</h3>
+          <ul>
+            <li>用户期望的最终交付物和可选停止点。</li>
+            <li>当前已有且通过契约校验的产物。</li>
+            <li>新增、存量变更、混合任务及影响范围。</li>
+            <li>资产标识、血缘覆盖、变更风险和确认策略。</li>
+          </ul>
+        </article>
+        <article class="planner-card planner-rules">
+          <h3>权威规划依据</h3>
+          <ul>
+            <li><code>requires</code>：工作流启动所需产物。</li>
+            <li><code>produces</code>：工作流完成后生成的产物。</li>
+            <li><code>mandatory_when</code>：命中条件时不可跳过。</li>
+            <li><code>skip_when</code>、<code>blocks_when</code>和并行约束。</li>
+          </ul>
+        </article>
+        <article class="planner-card planner-output">
+          <h3>规划输出</h3>
+          <ul>
+            <li>按依赖排序的工作流序列和并行分组。</li>
+            <li>选择、跳过和补充每个步骤的原因。</li>
+            <li>缺失前置条件、确认点及风险处置策略。</li>
+            <li>可被计划校验器检查的<code>ExecutionPlan</code>。</li>
+          </ul>
+        </article>
+      </div>
+
+      <figure class="panel planner-map" aria-labelledby="planner-map-title">
+        <figcaption id="planner-map-title"><strong>规划生命周期：</strong>大模型负责识别任务事实，确定性规则负责生成和校验工作流计划</figcaption>
+        <ol class="planner-steps" aria-label="动态规划的六个步骤">
+          <li class="planner-step"><span class="step-number">1</span><strong>识别目标与输入</strong><p>提取目标产物、停止点、范围和已有材料，不推导新的业务字段或业务含义。</p></li>
+          <li class="planner-step"><span class="step-number">2</span><strong>校验已有产物</strong><p>只有版本、指纹、状态和内容满足输入契约的产物，才可用于跳过前置步骤。</p></li>
+          <li class="planner-step"><span class="step-number">3</span><strong>反向补齐依赖</strong><p>从目标产物向前查找<code>requires</code>，直到所有输入已存在或能由其他工作流生成。</p></li>
+          <li class="planner-step"><span class="step-number">4</span><strong>应用强制与风险规则</strong><p>补入不可跳过的设计阶段、影响复核和评审门禁；发现阻断条件时停止规划。</p></li>
+          <li class="planner-step"><span class="step-number">5</span><strong>裁剪、排序与并行</strong><p>移除已满足的步骤，按依赖拓扑排序；资产标识明确时可并行WF-02与WF-03。</p></li>
+          <li class="planner-step"><span class="step-number">6</span><strong>输出并校验计划</strong><p>说明每个节点的选择原因、输入输出、确认点和降级策略，通过校验后再执行。</p></li>
+        </ol>
+      </figure>
+
+      <div class="plan-layout">
+        <article class="panel plan-example">
+          <h3>ExecutionPlan最小结构示例</h3>
+          <div class="route-flow" role="img" aria-label="目标是生成交付包，已有合规需求引用和资产快照。规划器跳过WF-01和WF-02，补入WF-03，并生成包含WF-07至WF-09强制设计阶段的执行计划。">
+            <div class="route-row">
+              <div class="flow-node input">目标：DeliveryPackage<br>已有：需求引用、资产快照</div>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <div class="flow-node decision">依赖闭包<br>＋治理与风险规则</div>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <div class="flow-node output">跳过WF-01 / 02<br>补入WF-03<br>强制WF-07 / 08 / 09</div>
+            </div>
+          </div>
+          <pre tabindex="0" aria-label="ExecutionPlan YAML示例"><code>plan_id: EP-20260826-001
+plan_version: 1
+objective: DeliveryPackage
+available_artifacts:
+  - ValidatedRequirementRef
+  - AssetSnapshot
+workflow_sequence:
+  - WF-03
+  - WF-04
+  - WF-05
+  - WF-06: planning
+  - WF-07
+  - WF-08
+  - WF-09
+  - WF-06: release
+  - WF-10
+  - WF-11
+skipped:
+  - WF-01: 已有有效需求校验引用
+  - WF-02: 已有合规资产快照
+validation_result: passed</code></pre>
+        </article>
+        <article class="panel">
+          <h3>执行中重新规划</h3>
+          <p>计划可以分段生成。完成WF-04后，根据供数结论更新当前产物集合，再决定结束、进入变更规划，或从最早受影响的模型阶段继续。</p>
+          <ul class="detail-list">
+            <li>完全可供数：输出映射后结束。</li>
+            <li>仅物理变化：从WF-09继续。</li>
+            <li>逻辑变化：执行WF-08 → WF-09。</li>
+            <li>概念变化或新增：执行WF-07 → WF-08 → WF-09。</li>
+            <li>批量混合任务：按需求项分支，满足依赖后汇合评审与交付。</li>
+          </ul>
+          <p class="planner-note"><strong>编排层不是第12个工作流</strong>它不生成数仓业务产物，只负责选择、排序、校验和解释工作流执行计划。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="rules" aria-labelledby="rules-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="rules-title">规划、降级与健壮性规则</h2>
+          <p>这些规则既约束动态规划器，也保证每个工作流可以单独执行并安全组成复杂任务。</p>
+        </div>
+      </div>
+
+      <div class="rules-grid">
+        <article class="rule"><h3>目标驱动，不绑定场景编号</h3><p>规划器从目标产物反向补齐依赖；SC-01至SC-14只作为参考示例和回归测试，不控制实际执行。</p></article>
+        <article class="rule"><h3>计划必须先校验再执行</h3><p>ExecutionPlan必须通过输入绑定、依赖闭包、强制阶段、风险门禁和无环性检查，存在缺口时不得启动。</p></article>
+        <article class="rule"><h3>契约依赖，不强绑执行实例</h3><p>WF-06依赖资产和血缘数据契约，而不是强制依赖WF-02、WF-03本次执行；外部合规快照同样可用。</p></article>
+        <article class="rule"><h3>需求校验不转换需求</h3><p>WF-01只输出校验结果和绑定原文档的引用，不产生“新的标准化需求”。</p></article>
+        <article class="rule"><h3>血缘证据分级</h3><p>字段血缘区分confirmed、inferred、partial和unavailable；缺失血缘时不得推断为“无影响”。</p></article>
+        <article class="rule"><h3>高风险变更必须阻断</h3><p>删除、改名、类型收窄、主键或粒度变化在字段血缘不足时阻断正式交付；兼容新增可带风险继续。</p></article>
+        <article class="rule"><h3>新增模型禁止跳阶段</h3><p>新增模型必须执行WF-07、WF-08、WF-09；存量模型只有证明上一级基线仍有效时才能从后续阶段开始。</p></article>
+        <article class="rule"><h3>影响分析前后两次复核</h3><p>WF-06 planning评估候选方案，WF-06 release复核最终物理差异；输入版本不同，因此不是循环。</p></article>
+        <article class="rule"><h3>失败结束本次执行</h3><p>WF-01不通过、WF-06不可接受或WF-10要求修改时，本次运行结束；修改输入后使用新版本重新启动。</p></article>
+        <article class="rule"><h3>统一产物信封</h3><p>所有产物记录输入指纹、版本、证据、覆盖范围、假设、风险、状态及推荐后续工作流。</p></article>
+      </div>
+
+      <div class="panel" style="margin-top:1rem">
+        <h3>统一运行状态</h3>
+        <div class="status-table-wrap">
+          <table>
+            <thead><tr><th>状态</th><th>含义</th><th>是否可进入后续流程</th></tr></thead>
+            <tbody>
+              <tr><td><code>completed</code></td><td>结果完整可用。</td><td>可以。</td></tr>
+              <tr><td><code>completed-with-risks</code></td><td>结果可用，但存在已声明的覆盖缺口或风险。</td><td>按后续工作流风险规则决定。</td></tr>
+              <tr><td><code>needs-input</code></td><td>输入可由用户或上游修正。</td><td>不可以；提交新版本后重跑。</td></tr>
+              <tr><td><code>blocked</code></td><td>关键证据、权限或前置条件缺失。</td><td>不可以。</td></tr>
+              <tr><td><code>out-of-scope</code></td><td>请求超出当前工作流职责。</td><td>移交正确工作流。</td></tr>
+              <tr><td><code>failed</code></td><td>执行发生技术错误。</td><td>排除技术故障后重跑。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="page-shell">
+      <p>dw-modeling Skill 工作流设计基线 · 2026-08-26</p>
+      <p>本页面为自包含HTML，不依赖外部脚本、样式或网络资源。</p>
+    </div>
+  </footer>
+
+  <div id="action-status" class="sr-only" aria-live="polite"></div>
+  <script>
+    (() => {
+      const details = Array.from(document.querySelectorAll("details"));
+      const status = document.getElementById("action-status");
+      const printStates = [];
+
+      function setAllDetails(open) {
+        details.forEach((item) => {
+          item.open = open;
+        });
+        status.textContent = open ? "已展开全部说明" : "已收起全部说明";
+      }
+
+      document.getElementById("expand-all").addEventListener("click", () => setAllDetails(true));
+      document.getElementById("collapse-all").addEventListener("click", () => setAllDetails(false));
+      document.getElementById("print-page").addEventListener("click", () => window.print());
+
+      window.addEventListener("beforeprint", () => {
+        printStates.length = 0;
+        details.forEach((item) => {
+          printStates.push(item.open);
+          item.open = true;
+        });
+      });
+
+      window.addEventListener("afterprint", () => {
+        details.forEach((item, index) => {
+          item.open = printStates[index];
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
