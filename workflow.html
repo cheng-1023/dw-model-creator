@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="dw-modeling Skill 的独立工作流、动态规划、典型任务场景及降级规则。">
-  <title>dw-modeling Skill 工作流设计</title>
+  <meta name="description" content="dw-model-creator Skill 的独立工作流、动态规划、典型任务场景及降级规则。">
+  <title>dw-model-creator Skill 工作流设计</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -887,7 +887,7 @@
 
   <header class="hero">
     <div class="page-shell">
-      <span class="eyebrow">dw-modeling · Workflow Architecture</span>
+      <span class="eyebrow">dw-model-creator · Workflow Architecture</span>
       <h1>数仓供数评估与模型设计工作流</h1>
       <p class="hero-copy">
         输入是需求分析阶段已经产出的标准化数据需求。本 Skill 负责校验需求、查询仓内资产与血缘、判断供数能力、规划模型变更，并根据目标产物、已有合规产物和风险约束动态编排概念、逻辑、物理设计及交付工作流。
@@ -1401,7 +1401,7 @@
             <li>按依赖排序的工作流序列和并行分组。</li>
             <li>选择、跳过和补充每个步骤的原因。</li>
             <li>缺失前置条件、确认点及风险处置策略。</li>
-            <li>可被计划校验器检查的<code>ExecutionPlan</code>。</li>
+            <li>可被计划校验器检查的CSV形式<code>ExecutionPlan</code>。</li>
           </ul>
         </article>
       </div>
@@ -1420,8 +1420,8 @@
 
       <div class="plan-layout">
         <article class="panel plan-example">
-          <h3>ExecutionPlan最小结构示例</h3>
-          <div class="route-flow" role="img" aria-label="目标是生成交付包，已有合规需求引用和资产快照。规划器跳过WF-01和WF-02，补入WF-03，并生成包含WF-07至WF-09强制设计阶段的执行计划。">
+          <h3>ExecutionPlan CSV表组最小结构示例</h3>
+          <div class="route-flow" role="img" aria-label="目标是生成DeliveryPackage，已有ValidatedRequirementRef和AssetSnapshot。规划器跳过WF-01和WF-02，补入WF-03，并按依赖执行后续设计、影响复核、评审和交付工作流。下方三张CSV表分别记录计划摘要、已有产物绑定以及执行和跳过步骤。">
             <div class="route-row">
               <div class="flow-node input">目标：DeliveryPackage<br>已有：需求引用、资产快照</div>
               <span class="flow-arrow" aria-hidden="true">→</span>
@@ -1430,27 +1430,27 @@
               <div class="flow-node output">跳过WF-01 / 02<br>补入WF-03<br>强制WF-07 / 08 / 09</div>
             </div>
           </div>
-          <pre tabindex="0" aria-label="ExecutionPlan YAML示例"><code>plan_id: EP-20260826-001
-plan_version: 1
-objective: DeliveryPackage
-available_artifacts:
-  - ValidatedRequirementRef
-  - AssetSnapshot
-workflow_sequence:
-  - WF-03
-  - WF-04
-  - WF-05
-  - WF-06: planning
-  - WF-07
-  - WF-08
-  - WF-09
-  - WF-06: release
-  - WF-10
-  - WF-11
-skipped:
-  - WF-01: 已有有效需求校验引用
-  - WF-02: 已有合规资产快照
-validation_result: passed</code></pre>
+          <p class="route-note"><code>execution_plan.csv</code></p>
+          <pre tabindex="0" aria-label="ExecutionPlan计划头CSV示例"><code>"plan_id","plan_version","objective","validation_result"
+"EP-20260826-001","1","DeliveryPackage","passed"</code></pre>
+          <p class="route-note"><code>plan_artifacts.csv</code></p>
+          <pre tabindex="0" aria-label="ExecutionPlan已有产物绑定CSV示例"><code>"plan_id","artifact_order","artifact_type","binding_status","binding_reason"
+"EP-20260826-001","1","ValidatedRequirementRef","available","已有有效需求校验引用"
+"EP-20260826-001","2","AssetSnapshot","available","已有合规资产快照"</code></pre>
+          <p class="route-note"><code>plan_steps.csv</code></p>
+          <pre tabindex="0" aria-label="ExecutionPlan执行与跳过步骤CSV示例"><code>"plan_id","execution_order","workflow_id","workflow_mode","action","selection_type","parallel_group","reason"
+"EP-20260826-001",\N,"WF-01","default","skip","satisfied",\N,"已有有效需求校验引用"
+"EP-20260826-001",\N,"WF-02","default","skip","satisfied",\N,"已有合规资产快照"
+"EP-20260826-001","1","WF-03","default","execute","required",\N,"补齐LineageSnapshot"
+"EP-20260826-001","2","WF-04","default","execute","required",\N,"生成SupplyAssessment"
+"EP-20260826-001","3","WF-05","default","execute","required",\N,"生成ModelChangePlan"
+"EP-20260826-001","4","WF-06","planning","execute","required",\N,"评估候选变更方案影响"
+"EP-20260826-001","5","WF-07","default","execute","forced",\N,"新增模型强制概念设计"
+"EP-20260826-001","6","WF-08","default","execute","forced",\N,"新增模型强制逻辑设计"
+"EP-20260826-001","7","WF-09","default","execute","forced",\N,"新增模型强制物理设计"
+"EP-20260826-001","8","WF-06","release","execute","required",\N,"复核最终物理差异影响"
+"EP-20260826-001","9","WF-10","default","execute","required",\N,"完成交付前模型评审"
+"EP-20260826-001","10","WF-11","default","execute","required",\N,"生成DDL与DeliveryPackage"</code></pre>
         </article>
         <article class="panel">
           <h3>执行中重新规划</h3>
@@ -1477,7 +1477,7 @@ validation_result: passed</code></pre>
 
       <div class="rules-grid">
         <article class="rule"><h3>目标驱动，不绑定场景编号</h3><p>规划器从目标产物反向补齐依赖；SC-01至SC-14只作为参考示例和回归测试，不控制实际执行。</p></article>
-        <article class="rule"><h3>计划必须先校验再执行</h3><p>ExecutionPlan必须通过输入绑定、依赖闭包、强制阶段、风险门禁和无环性检查，存在缺口时不得启动。</p></article>
+        <article class="rule"><h3>计划必须先校验再执行</h3><p>CSV形式的ExecutionPlan必须通过输入绑定、依赖闭包、强制阶段、风险门禁和无环性检查，存在缺口时不得启动。</p></article>
         <article class="rule"><h3>契约依赖，不强绑执行实例</h3><p>WF-06依赖资产和血缘数据契约，而不是强制依赖WF-02、WF-03本次执行；外部合规快照同样可用。</p></article>
         <article class="rule"><h3>需求校验不转换需求</h3><p>WF-01只输出校验结果和绑定原文档的引用，不产生“新的标准化需求”。</p></article>
         <article class="rule"><h3>血缘证据分级</h3><p>字段血缘区分confirmed、inferred、partial和unavailable；缺失血缘时不得推断为“无影响”。</p></article>
@@ -1509,7 +1509,7 @@ validation_result: passed</code></pre>
 
   <footer>
     <div class="page-shell">
-      <p>dw-modeling Skill 工作流设计基线 · 2026-08-26</p>
+      <p>dw-model-creator Skill 工作流设计基线 · 2026-08-26</p>
       <p>本页面为自包含HTML，不依赖外部脚本、样式或网络资源。</p>
     </div>
   </footer>
